@@ -21,8 +21,45 @@ def load_text_directory(directory):
         out_list.append(load_text_file(os.path.join(directory, filename)))
     return out_list
 
-# Step 3 - extract_text_from_html (not yet solved)
-# TODO: implement
+# Step 3 - extract_text_from_html
+from html.parser import HTMLParser
+import re
+
+def extract_text_from_html(html: str) -> str:
+    """
+    Extracts visible text from HTML using only the Python standard library.
+    Removes script, style, and other non-visible tags; decodes entities.
+    """
+    if not html:
+        return ""
+
+    class TextExtractor(HTMLParser):
+        def __init__(self):
+            # convert_charrefs=True automatically decodes &amp;, &lt;, etc.
+            super().__init__(convert_charrefs=True)
+            self.text_parts = []
+            self.skip_depth = 0
+            self.skip_tags = {"script", "style", "noscript", "head", "title", "meta", "link"}
+
+        def handle_starttag(self, tag, attrs):
+            if tag in self.skip_tags:
+                self.skip_depth += 1
+
+        def handle_endtag(self, tag):
+            if tag in self.skip_tags:
+                self.skip_depth = max(0, self.skip_depth - 1)
+
+        def handle_data(self, data):
+            if self.skip_depth == 0:
+                self.text_parts.append(data)
+
+    parser = TextExtractor()
+    try:
+        parser.feed(html)
+        # Join parts and normalize whitespace (collapse newlines/spaces)
+        return re.sub(r"\s+", " ", "".join(parser.text_parts)).strip()
+    except Exception:
+        return ""
 
 # Step 4 - normalize_text (not yet solved)
 # TODO: implement
